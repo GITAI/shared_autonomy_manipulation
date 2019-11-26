@@ -162,6 +162,7 @@ namespace safe_teleop {
   void SafeTrajectoryPlannerROS::cmdCallback(const geometry_msgs::Twist::ConstPtr& vel) {
     if ((safe_backwards_  && ((fabs(vel->linear.x) > 0) || (fabs(vel->linear.y) > 0))) ||
         (!safe_backwards_ && ((vel->linear.x > 0) || (fabs(vel->linear.y) > 0))))
+    {
       geometry_msgs::Twist safe_vel;
       if (computeVelocityCommands(vel, safe_vel)) {
         cmd_pub_.publish(safe_vel);
