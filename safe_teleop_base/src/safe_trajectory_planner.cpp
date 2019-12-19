@@ -7,7 +7,7 @@ using namespace base_local_planner;
 namespace safe_teleop {
 SafeTrajectoryPlanner::SafeTrajectoryPlanner(WorldModel& world_model,
     const Costmap2D& costmap,
-    std::vector<geometry_msgs::Point> footprint_spec,
+    Costmap2DROS& costmap_ros,
     double inscribed_radius, double circumscribed_radius,
     double acc_lim_x, double acc_lim_y, double acc_lim_theta,
     double sim_time, double sim_granularity,
@@ -17,8 +17,8 @@ SafeTrajectoryPlanner::SafeTrajectoryPlanner(WorldModel& world_model,
     double max_vel_y, double min_vel_y,
     double max_vel_th, double min_vel_th,
     bool holonomic_robot, bool dwa)
-: map_(costmap.getSizeInCellsX(), costmap.getSizeInCellsY()), costmap_(costmap),
-  world_model_(world_model), footprint_spec_(footprint_spec),
+: map_(costmap.getSizeInCellsX(), costmap.getSizeInCellsY()), costmap_(costmap), costmap_ros_(costmap_ros),
+  world_model_(world_model),
   inscribed_radius_(inscribed_radius), circumscribed_radius_(circumscribed_radius),
   sim_time_(sim_time), sim_granularity_(sim_granularity),
   vx_samples_(vx_samples), vy_samples_(vy_samples), vtheta_samples_(vtheta_samples),
@@ -451,10 +451,11 @@ double SafeTrajectoryPlanner::footprintCost(double x_i, double y_i, double theta
   double cos_th = cos(theta_i);
   double sin_th = sin(theta_i);
   vector<geometry_msgs::Point> oriented_footprint;
-  for(unsigned int i = 0; i < footprint_spec_.size(); ++i){
+  const vector<geometry_msgs::Point> footprint_spec = costmap_ros_.getRobotFootprint();
+  for(unsigned int i = 0; i < footprint_spec.size(); ++i){
     geometry_msgs::Point new_pt;
-    new_pt.x = x_i + (footprint_spec_[i].x * cos_th - footprint_spec_[i].y * sin_th);
-    new_pt.y = y_i + (footprint_spec_[i].x * sin_th + footprint_spec_[i].y * cos_th);
+    new_pt.x = x_i + (footprint_spec[i].x * cos_th - footprint_spec[i].y * sin_th);
+    new_pt.y = y_i + (footprint_spec[i].x * sin_th + footprint_spec[i].y * cos_th);
     oriented_footprint.push_back(new_pt);
   }
 
@@ -542,9 +543,9 @@ void SafeTrajectoryPlanner::getLineCells(int x0, int x1, int y0, int y1, vector<
 //get the cellsof a footprint at a given position
 vector<base_local_planner::Position2DInt> SafeTrajectoryPlanner::getFootprintCells(double x_i, double y_i, double theta_i, bool fill){
   vector<base_local_planner::Position2DInt> footprint_cells;
-
+  const vector<geometry_msgs::Point> footprint_spec = costmap_ros_.getRobotFootprint();
   //if we have no footprint... do nothing
-  if(footprint_spec_.size() <= 1){
+  if(footprint_spec.size() <= 1){
     unsigned int mx, my;
     if(costmap_.worldToMap(x_i, y_i, mx, my)){
       Position2DInt center;
@@ -560,18 +561,18 @@ vector<base_local_planner::Position2DInt> SafeTrajectoryPlanner::getFootprintCel
   double sin_th = sin(theta_i);
   double new_x, new_y;
   unsigned int x0, y0, x1, y1;
-  unsigned int last_index = footprint_spec_.size() - 1;
+  unsigned int last_index = footprint_spec.size() - 1;
 
   for(unsigned int i = 0; i < last_index; ++i){
     //find the cell coordinates of the first segment point
-    new_x = x_i + (footprint_spec_[i].x * cos_th - footprint_spec_[i].y * sin_th);
-    new_y = y_i + (footprint_spec_[i].x * sin_th + footprint_spec_[i].y * cos_th);
+    new_x = x_i + (footprint_spec[i].x * cos_th - footprint_spec[i].y * sin_th);
+    new_y = y_i + (footprint_spec[i].x * sin_th + footprint_spec[i].y * cos_th);
     if(!costmap_.worldToMap(new_x, new_y, x0, y0))
       return footprint_cells;
 
     //find the cell coordinates of the second segment point
-    new_x = x_i + (footprint_spec_[i + 1].x * cos_th - footprint_spec_[i + 1].y * sin_th);
-    new_y = y_i + (footprint_spec_[i + 1].x * sin_th + footprint_spec_[i + 1].y * cos_th);
+    new_x = x_i + (footprint_spec[i + 1].x * cos_th - footprint_spec[i + 1].y * sin_th);
+    new_y = y_i + (footprint_spec[i + 1].x * sin_th + footprint_spec[i + 1].y * cos_th);
     if(!costmap_.worldToMap(new_x, new_y, x1, y1))
       return footprint_cells;
 
@@ -579,13 +580,13 @@ vector<base_local_planner::Position2DInt> SafeTrajectoryPlanner::getFootprintCel
   }
 
   //we need to close the loop, so we also have to raytrace from the last pt to first pt
-  new_x = x_i + (footprint_spec_[last_index].x * cos_th - footprint_spec_[last_index].y * sin_th);
-  new_y = y_i + (footprint_spec_[last_index].x * sin_th + footprint_spec_[last_index].y * cos_th);
+  new_x = x_i + (footprint_spec[last_index].x * cos_th - footprint_spec[last_index].y * sin_th);
+  new_y = y_i + (footprint_spec[last_index].x * sin_th + footprint_spec[last_index].y * cos_th);
   if(!costmap_.worldToMap(new_x, new_y, x0, y0))
     return footprint_cells;
 
-  new_x = x_i + (footprint_spec_[0].x * cos_th - footprint_spec_[0].y * sin_th);
-  new_y = y_i + (footprint_spec_[0].x * sin_th + footprint_spec_[0].y * cos_th);
+  new_x = x_i + (footprint_spec[0].x * cos_th - footprint_spec[0].y * sin_th);
+  new_y = y_i + (footprint_spec[0].x * sin_th + footprint_spec[0].y * cos_th);
   if(!costmap_.worldToMap(new_x, new_y, x1, y1))
     return footprint_cells;
 

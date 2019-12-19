@@ -92,7 +92,7 @@ namespace safe_teleop {
 
     std::vector<double> y_vels = loadYVels(private_nh);
 
-    tc_ = new SafeTrajectoryPlanner(*world_model_, costmap_, costmap_ros_->getRobotFootprint(), inscribed_radius_, circumscribed_radius_,
+    tc_ = new SafeTrajectoryPlanner(*world_model_, costmap_, *costmap_ros_, inscribed_radius_, circumscribed_radius_,
         acc_lim_x, acc_lim_y, acc_lim_theta, sim_time, sim_granularity, vx_samples, vy_samples, vtheta_samples,
         userdist_scale, occdist_scale,
         max_vel_x, min_vel_x, max_vel_y, min_vel_y, max_vel_th_, min_vel_th_,
