@@ -48,6 +48,7 @@
 
 //for obstacle data access
 #include <costmap_2d/costmap_2d.h>
+#include <costmap_2d/costmap_2d_ros.h>
 #include <costmap_2d/cost_values.h>
 #include <base_local_planner/world_model.h>
 
@@ -103,8 +104,8 @@ namespace safe_teleop {
        * @param dwa Set this to true to use the Dynamic Window Approach, false to use acceleration limits
        */
       SafeTrajectoryPlanner(base_local_planner::WorldModel& world_model,
-          const costmap_2d::Costmap2D& costmap, 
-          std::vector<geometry_msgs::Point> footprint_spec,
+          const costmap_2d::Costmap2D& costmap,
+          costmap_2d::Costmap2DROS& costmap_ros,
           double inscribed_radius, double circumscribed_radius,
           double acc_lim_x = 1.0, double acc_lim_y = 1.0, double acc_lim_theta = 1.0,
           double sim_time = 1.0, double sim_granularity = 0.025, 
@@ -222,9 +223,9 @@ namespace safe_teleop {
 
       base_local_planner::MapGrid map_; ///< @brief The local map grid where we propagate goal and path distance
       const costmap_2d::Costmap2D& costmap_; ///< @brief Provides access to cost map information
+      costmap_2d::Costmap2DROS& costmap_ros_;
       base_local_planner::WorldModel& world_model_; ///< @brief The world model that the controller uses for collision detection
 
-      std::vector<geometry_msgs::Point> footprint_spec_; ///< @brief The footprint specification of the robot
       double inscribed_radius_, circumscribed_radius_; ///< @brief The inscribed and circumscribed radii of the robot
 
       double sim_time_;        ///< @brief The number of seconds each trajectory is "rolled-out"
